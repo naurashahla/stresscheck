@@ -1,0 +1,197 @@
+{
+    "CF_PAKAR": {
+        "G01": 0.75,
+        "G02": 0.8,
+        "G03": 0.8,
+        "G04": 0.7,
+        "G05": 0.5,
+        "G06": 0.9,
+        "G07": 0.9,
+        "G08": 0.6,
+        "G09": 0.95,
+        "G10": 0.8,
+        "G11": 0.6,
+        "G12": 0.95,
+        "G13": 0.9,
+        "G14": 0.9,
+        "G15": 0.8,
+        "G16": 0.75,
+        "G17": 0.8,
+        "G18": 0.9,
+        "G19": 0.7,
+        "G20": 0.95,
+        "G21": 0.85,
+        "G22": 0.85,
+        "G23": 0.9,
+        "G24": 0.5,
+        "G25": 0.7,
+        "G26": 0.8,
+        "G27": 0.8,
+        "G28": 0.9,
+        "G29": 0.8,
+        "G30": 0.8,
+        "G31": 0.9,
+        "G32": 0.9,
+        "G33": 0.9,
+        "G34": 0.9,
+        "G35": 0.8
+    },
+    "SKALA_CF": {
+        "1": 0.0,
+        "2": 0.25,
+        "3": 0.5,
+        "4": 0.75,
+        "5": 1.0
+    },
+    "LIKERT_LABELS": {
+        "1": "Sangat Tidak Setuju",
+        "2": "Tidak Setuju",
+        "3": "Netral",
+        "4": "Setuju",
+        "5": "Sangat Setuju"
+    },
+    "RULES": {
+        "R01": [
+            "T01",
+            "OR",
+            [
+                "G05",
+                "G11",
+                "G16",
+                "G19",
+                "G24"
+            ]
+        ],
+        "R02": [
+            "T01",
+            "AND",
+            [
+                "G01",
+                "G04",
+                "G16"
+            ]
+        ],
+        "R03": [
+            "T01",
+            "AND_NOT",
+            [
+                "G05",
+                "G11",
+                "G06"
+            ]
+        ],
+        "R04": [
+            "T02",
+            "AND",
+            [
+                "G02",
+                "G10",
+                "G25"
+            ]
+        ],
+        "R05": [
+            "T02",
+            "AND",
+            [
+                "G08",
+                "G15",
+                "G27"
+            ]
+        ],
+        "R06": [
+            "T02",
+            "AND",
+            [
+                "G17",
+                "G21",
+                "G22"
+            ]
+        ],
+        "R07": [
+            "T02",
+            "AND",
+            [
+                "G26",
+                "G29",
+                "G30"
+            ]
+        ],
+        "R08": [
+            "T02",
+            "AND",
+            [
+                "G01",
+                "G10",
+                "G15",
+                "G25"
+            ]
+        ],
+        "R09": [
+            "T03",
+            "AND",
+            [
+                "G06",
+                "G09",
+                "G12",
+                "G14"
+            ]
+        ],
+        "R10": [
+            "T03",
+            "AND",
+            [
+                "G18",
+                "G20",
+                "G23"
+            ]
+        ],
+        "R11": [
+            "T03",
+            "AND",
+            [
+                "G28",
+                "G31",
+                "G33"
+            ]
+        ],
+        "R12": [
+            "T03",
+            "AND",
+            [
+                "G09",
+                "G13",
+                "G32",
+                "G35"
+            ]
+        ],
+        "R13": [
+            "T03",
+            "AND",
+            [
+                "G14",
+                "G27",
+                "G34"
+            ]
+        ],
+        "R14": [
+            "T03",
+            "AND",
+            [
+                "G06",
+                "G07",
+                "G09",
+                "G33"
+            ]
+        ]
+    },
+    "LABEL_TINGKAT": {
+        "T01": "Stres Ringan",
+        "T02": "Stres Sedang",
+        "T03": "Stres Berat"
+    },
+    "SARAN": {
+        "T01": "Kondisi Anda masih dalam batas wajar. Pertahankan pola hidup sehat, olahraga teratur, dan istirahat cukup untuk menjaga keseimbangan akademik.",
+        "T02": "Anda mengalami stres sedang. Disarankan untuk mencoba teknik relaksasi, manajemen waktu yang lebih baik, dan berbicara dengan konselor akademik jika diperlukan.",
+        "T03": "Tingkat stres Anda cukup tinggi. Sangat disarankan untuk segera berkonsultasi dengan konselor akademik atau psikolog kampus untuk mendapatkan dukungan profesional."
+    }
+}

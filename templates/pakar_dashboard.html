@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Validasi Diagnosa — StresCheck{% endblock %}
+{% block extra_head %}
+<style>
+.pakar-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 26px;
+  margin-bottom: 18px;
+  transition: transform .2s, box-shadow .2s;
+}
+.pakar-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.pakar-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+.pakar-user { display: flex; gap: 12px; align-items: center; }
+.pakar-avatar {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--brand-pale), var(--brand));
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+}
+.pakar-name { font-weight: 700; color: var(--ink); }
+.pakar-date { font-size: 0.78rem; color: var(--ink-soft); }
+.pakar-result-badge { text-align: right; }
+.gejala-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.validasi-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.validasi-form .form-group { flex: 1; min-width: 220px; margin-bottom: 0; }
+.validated-info {
+  background: var(--brand-pale);
+  border: 1px solid rgba(255,107,53,.2);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.875rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Validasi Diagnosa</h1>
+  <p>Tinjau dan validasi hasil diagnosa sistem pakar</p>
+</div>
+
+{% for d in diagnosa %}
+{% set level_class = 'ringan' if 'Ringan' in d.hasil else ('berat' if 'Berat' in d.hasil else 'sedang') %}
+{% set emoji = '🟢' if 'Ringan' in d.hasil else ('🔴' if 'Berat' in d.hasil else '🟡') %}
+<div class="pakar-card animate-up" style="animation-delay:{{ loop.index0 * 0.05 }}s">
+  <div class="pakar-card-header">
+    <div class="pakar-user">
+      <div class="pakar-avatar">👤</div>
+      <div>
+        <div class="pakar-name">{{ d.nama }}</div>
+        <div class="pakar-date">{{ d.user }} · {{ d.tanggal }}</div>
+      </div>
+    </div>
+    <div class="pakar-result-badge">
+      {% if 'Ringan' in d.hasil %}
+        <span class="badge badge-green" style="font-size:.85rem;padding:6px 14px;">🟢 {{ d.hasil }}</span>
+      {% elif 'Berat' in d.hasil %}
+        <span class="badge badge-red" style="font-size:.85rem;padding:6px 14px;">🔴 {{ d.hasil }}</span>
+      {% else %}
+        <span class="badge badge-yellow" style="font-size:.85rem;padding:6px 14px;">🟡 {{ d.hasil }}</span>
+      {% endif %}
+      <div style="font-size:.82rem;color:var(--ink-soft);margin-top:4px;text-align:right;">CF: <strong style="color:var(--brand);">{{ d.cf }}%</strong></div>
+    </div>
+  </div>
+
+  <!-- GEJALA DIPILIH -->
+  <div style="margin-bottom:10px;">
+    <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:8px;">
+      Gejala Teridentifikasi ({{ d.gejala_dipilih|length }} gejala) — <em>Klik kode gejala untuk melihat detailnya</em>
+    </div>
+    <div class="gejala-list" style="margin-bottom: 12px;">
+      {% for gid in d.gejala_dipilih %}
+        {% set gejala_obj = gejala | selectattr('id', 'equalto', gid) | first %}
+        {% if gejala_obj %}
+        <span class="badge badge-orange" style="cursor: pointer; transition: transform 0.1s;" onclick="toggleGejalaDetail({{ d.id }}, '{{ gid }}')" title="Klik untuk lihat detail & jawaban">{{ gid }}</span>
+        {% else %}
+        <span class="badge badge-orange" style="cursor: pointer;" onclick="toggleGejalaDetail({{ d.id }}, '{{ gid }}')">{{ gid }}</span>
+        {% endif %}
+      {% endfor %}
+      {% if not d.gejala_dipilih %}
+        <span style="font-size:.82rem;color:var(--ink-soft);">Tidak ada gejala dipilih.</span>
+      {% endif %}
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-{{ d.id }}" onclick="toggleGejalaDetail({{ d.id }})" style="margin-bottom: 14px; font-size: 0.8rem; padding: 6px 12px;">
+      👁️ Lihat Rincian Jawaban
+    </button>
+  </div>
+
+  <!-- COLLAPSIBLE GEJALA DETAILS PANEL -->
+  <div id="details-{{ d.id }}" class="gejala-details" style="display: none; margin-bottom: 18px; background: #FAF9F6; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+      <h4 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 0;">
+        Rincian Jawaban Responden
+      </h4>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-show-all-{{ d.id }}" onclick="filterGejalaList({{ d.id }}, 'all')" style="padding: 4px 10px; font-size: 0.75rem; background: var(--border); border-radius: 6px;">Semua (35)</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-show-active-{{ d.id }}" onclick="filterGejalaList({{ d.id }}, 'active')" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px;">Teridentifikasi Saja ({{ d.gejala_dipilih|length }})</button>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 6px;">
+      {% for g in gejala %}
+        {% set user_val = d.jawaban_gejala.get(g.id, 0) if d.jawaban_gejala else (4 if g.id in d.gejala_dipilih else 1) %}
+        {% set is_active = g.id in d.gejala_dipilih %}
+        <div class="gejala-row" id="row-{{ d.id }}-{{ g.id }}" data-active="{{ 'true' if is_active else 'false' }}" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; font-size: 0.85rem; padding: 6px 8px; border-bottom: 1px dashed var(--border); border-radius: 6px;">
+          <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <span class="badge {% if is_active %}badge-orange{% else %}badge-gray{% endif %}" style="font-family: monospace; font-size: 0.75rem; flex-shrink: 0; min-width: 38px; text-align: center;">{{ g.id }}</span>
+            <span style="color: {% if is_active %}var(--ink){% else %}var(--ink-soft){% endif %}; font-weight: {% if is_active %}600{% else %}400{% endif %};">{{ g.teks }}</span>
+          </div>
+          <div style="flex-shrink: 0; text-align: right;">
+            {% set label_name = likert_labels.get(user_val, 'Skala ' ~ user_val) %}
+            {% if user_val >= 5 %}
+              <span class="badge badge-red">{{ label_name }} ({{ user_val }})</span>
+            {% elif user_val == 4 %}
+              <span class="badge badge-orange">{{ label_name }} ({{ user_val }})</span>
+            {% elif user_val == 3 %}
+              <span class="badge badge-yellow">{{ label_name }} ({{ user_val }})</span>
+            {% else %}
+              <span class="badge badge-gray">{{ label_name }} ({{ user_val }})</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- VALIDASI -->
+  {% if d.validasi %}
+    <div class="validated-info">
+      {% if d.validasi == 'Sesuai' %}
+        ✅ <strong>Hasil Sesuai</strong>
+      {% else %}
+        ❌ <strong>Hasil Tidak Sesuai</strong>
+      {% endif %}
+      {% if d.catatan_pakar %}
+        · <span style="color:var(--ink-muted);">{{ d.catatan_pakar }}</span>
+      {% endif %}
+    </div>
+  {% else %}
+    <form method="POST" action="{{ url_for('pakar_validasi', diagnosa_id=d.id) }}">
+      <div class="validasi-form">
+        <div class="form-group">
+          <label class="form-label">Keputusan Validasi</label>
+          <select name="validasi" class="form-control" required>
+            <option value="">-- Pilih Validasi --</option>
+            <option value="Sesuai">✅ Sesuai dengan kondisi</option>
+            <option value="Tidak Sesuai">❌ Tidak Sesuai</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catatan Pakar (opsional)</label>
+          <input type="text" name="catatan" class="form-control" placeholder="Masukkan catatan atau koreksi...">
+        </div>
+        <button type="submit" class="btn btn-primary" style="white-space:nowrap;align-self:flex-end;">
+          Simpan Validasi
+        </button>
+      </div>
+    </form>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% if not diagnosa %}
+<div style="text-align:center;padding:60px 24px;background:#fff;border-radius:var(--r-xl);border:2px dashed var(--border);">
+  <div style="font-size:3rem;margin-bottom:14px;">🔬</div>
+  <h3 style="font-family:var(--font-serif);margin-bottom:8px;">Belum Ada Data Diagnosa</h3>
+  <p style="color:var(--ink-soft);">Belum ada hasil diagnosa yang perlu divalidasi.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleGejalaDetail(diagnosaId, scrollToGejalaId = null) {
+  const panel = document.getElementById('details-' + diagnosaId);
+  const btn = document.getElementById('btn-toggle-' + diagnosaId);
+  
+  if (!panel) return;
+  
+  if (panel.style.display === 'none' || scrollToGejalaId !== null) {
+    panel.style.display = 'block';
+    if (btn) btn.innerHTML = '▲ Tutup Rincian Jawaban';
+    
+    if (scrollToGejalaId) {
+      const row = document.getElementById('row-' + diagnosaId + '-' + scrollToGejalaId);
+      if (row) {
+        row.style.display = 'flex';
+        
+        // Highlight row
+        row.style.backgroundColor = 'rgba(255, 107, 53, 0.15)';
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          row.style.transition = 'background-color 1.5s';
+          row.style.backgroundColor = 'transparent';
+        }, 2000);
+      }
+    }
+  } else {
+    panel.style.display = 'none';
+    if (btn) btn.innerHTML = '👁️ Lihat Rincian Jawaban';
+  }
+}
+
+function filterGejalaList(diagnosaId, filterType) {
+  const panel = document.getElementById('details-' + diagnosaId);
+  if (!panel) return;
+  const rows = panel.querySelectorAll('.gejala-row');
+  const btnAll = document.getElementById('btn-show-all-' + diagnosaId);
+  const btnActive = document.getElementById('btn-show-active-' + diagnosaId);
+  
+  if (filterType === 'all') {
+    rows.forEach(r => r.style.display = 'flex');
+    if (btnAll) btnAll.style.background = 'var(--border)';
+    if (btnActive) btnActive.style.background = 'transparent';
+  } else {
+    rows.forEach(r => {
+      if (r.dataset.active === 'true') {
+        r.style.display = 'flex';
+      } else {
+        r.style.display = 'none';
+      }
+    });
+    if (btnAll) btnAll.style.background = 'transparent';
+    if (btnActive) btnActive.style.background = 'var(--border)';
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Hasil Diagnosa — StresCheck{% endblock %}
+{% block extra_head %}
+<style>
+.hasil-page { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
+
+/* RESULT HERO */
+.result-hero {
+  border-radius: 28px;
+  padding: 44px 36px;
+  text-align: center;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.result-hero.ringan { background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border: 1.5px solid #86EFAC; }
+.result-hero.sedang { background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1.5px solid #FCD34D; }
+.result-hero.berat  { background: linear-gradient(135deg, #FFF5F5 0%, #FEE2E2 100%); border: 1.5px solid #FCA5A5; }
+.result-emoji { font-size: 4rem; margin-bottom: 16px; display: block; }
+.result-sublabel { font-size: 0.78rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; margin-bottom: 8px; }
+.result-hero.ringan .result-sublabel { color: #15803d; }
+.result-hero.sedang .result-sublabel { color: #b45309; }
+.result-hero.berat  .result-sublabel { color: #b91c1c; }
+.result-title {
+  font-family: var(--font-serif);
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+.result-hero.ringan .result-title { color: #166534; }
+.result-hero.sedang .result-title { color: #92400E; }
+.result-hero.berat  .result-title { color: #991B1B; }
+
+/* CF GAUGE */
+.cf-section { margin-top: 28px; }
+.cf-number {
+  font-size: 3.2rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.result-hero.ringan .cf-number { color: #16a34a; }
+.result-hero.sedang .cf-number { color: #d97706; }
+.result-hero.berat  .cf-number { color: #dc2626; }
+.cf-label-text { font-size: 0.82rem; color: var(--ink-soft); font-weight: 600; margin-bottom: 12px; }
+.cf-bar-wrap {
+  max-width: 320px; margin: 0 auto;
+  height: 14px; border-radius: 99px;
+  background: rgba(0,0,0,.08);
+  overflow: hidden;
+}
+.cf-bar-fill { height: 100%; border-radius: 99px; transition: width 1.5s cubic-bezier(.34,1.56,.64,1); }
+.result-hero.ringan .cf-bar-fill { background: linear-gradient(90deg, #22c55e, #86efac); }
+.result-hero.sedang .cf-bar-fill { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
+.result-hero.berat  .cf-bar-fill { background: linear-gradient(90deg, #ef4444, #fca5a5); }
+
+/* DETAIL CARDS */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+.detail-card { background: #fff; border-radius: var(--r-xl); border: 1px solid var(--border); padding: 24px; box-shadow: var(--shadow-sm); }
+.detail-card h3 { font-family: var(--font-serif); font-size: 1rem; font-weight: 600; color: var(--ink); margin-bottom: 14px; }
+.cf-breakdown { display: flex; flex-direction: column; gap: 10px; }
+.cf-row-item { display: flex; flex-direction: column; gap: 4px; }
+.cf-row-top { display: flex; justify-content: space-between; }
+.cf-row-name { font-size: 0.82rem; color: var(--ink-muted); font-weight: 500; }
+.cf-row-val { font-size: 0.82rem; font-weight: 700; }
+.mini-progress { height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.mini-progress-fill { height: 100%; border-radius: 99px; }
+.fill-green  { background: #22c55e; }
+.fill-yellow { background: #f59e0b; }
+.fill-red    { background: #ef4444; }
+
+/* SARAN */
+.saran-card {
+  background: var(--brand-pale);
+  border: 1.5px solid rgba(255,107,53,.2);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.saran-card h3 { color: var(--brand-dark); font-family: var(--font-serif); margin-bottom: 8px; }
+.saran-card p { color: #7C3A1E; font-size: 0.9rem; line-height: 1.7; }
+
+/* ACTIONS */
+.result-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+@media(max-width:600px){
+  .detail-grid { grid-template-columns: 1fr; }
+  .result-title { font-size: 2rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set level_class = 'ringan' if 'Ringan' in hasil.tingkat else ('berat' if 'Berat' in hasil.tingkat else 'sedang') %}
+{% set emoji = '🟢' if 'Ringan' in hasil.tingkat else ('🔴' if 'Berat' in hasil.tingkat else '🟡') %}
+
+<div class="hasil-page">
+  <!-- RESULT HERO -->
+  <div class="result-hero {{ level_class }} animate-up">
+    <span class="result-emoji">{{ emoji }}</span>
+    <div class="result-sublabel">Hasil Diagnosa Stres Akademik</div>
+    <div class="result-title">{{ hasil.tingkat }}</div>
+    <div class="cf-section">
+      <div class="cf-number" id="cf-display">0%</div>
+      <div class="cf-label-text">Tingkat Keyakinan (Certainty Factor)</div>
+      <div class="cf-bar-wrap">
+        <div class="cf-bar-fill" id="cf-bar" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL GRID -->
+  <div class="detail-grid animate-up stagger-1">
+    <!-- CF BREAKDOWN -->
+    <div class="detail-card">
+      <h3>📊 Rincian CF per Tingkat</h3>
+      <div class="cf-breakdown">
+        {% for label in ['Stres Ringan', 'Stres Sedang', 'Stres Berat'] %}
+        {% if label in hasil.cf_detail %}
+        {% set val = hasil.cf_detail[label] %}
+        {% set fill_class = 'fill-green' if 'Ringan' in label else ('fill-red' if 'Berat' in label else 'fill-yellow') %}
+        {% set is_winner = label == hasil.tingkat %}
+        <div class="cf-row-item">
+          <div class="cf-row-top">
+            <span class="cf-row-name">{{ label }}{% if is_winner %} ✓{% endif %}</span>
+            <span class="cf-row-val {% if is_winner %}text-brand{% endif %}">{{ val }}%</span>
+          </div>
+          <div class="mini-progress">
+            <div class="mini-progress-fill {{ fill_class }}" style="width:{{ val }}%"></div>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- GEJALA AKTIF -->
+    <div class="detail-card">
+      <h3>🔍 Gejala Teridentifikasi</h3>
+      <div style="font-size:0.82rem;color:var(--ink-soft);margin-bottom:10px;">
+        {{ hasil.gejala_aktif|length }} dari 35 gejala ditemukan
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        {% for g in hasil.gejala_aktif[:12] %}
+        <span class="badge badge-orange">{{ g }}</span>
+        {% endfor %}
+        {% if hasil.gejala_aktif|length > 12 %}
+        <span class="badge badge-gray">+{{ hasil.gejala_aktif|length - 12 }} lagi</span>
+        {% endif %}
+        {% if not hasil.gejala_aktif %}
+        <span style="color:var(--ink-soft);font-size:0.85rem;">Tidak ada gejala signifikan.</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- SARAN -->
+  <div class="saran-card animate-up stagger-2">
+    <h3>💡 Saran & Rekomendasi</h3>
+    <p>{{ hasil.saran }}</p>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="result-actions animate-up stagger-3">
+    <a href="{{ url_for('diagnosa') }}" class="btn btn-primary">🔄 Ulangi Diagnosa</a>
+    <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline">📋 Lihat Riwayat</a>
+    <a href="{{ url_for('index') }}" class="btn btn-ghost">🏠 Beranda</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Animate CF number counting up
+window.addEventListener('load', () => {
+  const target = {{ hasil.cf_final }};
+  const display = document.getElementById('cf-display');
+  const bar = document.getElementById('cf-bar');
+  let current = 0;
+  const duration = 1500;
+  const step = target / (duration / 16);
+
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    display.textContent = current.toFixed(1) + '%';
+    bar.style.width = current + '%';
+    if (current >= target) clearInterval(timer);
+  }, 16);
+});
+</script>
+{% endblock %}

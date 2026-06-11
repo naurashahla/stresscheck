@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Kelola Rule Sistem Pakar — StresCheck{% endblock %}
+
+{% block content %}
+<div class="page-header flex-between">
+  <div>
+    <h1>Kelola Aturan (Rule Sistem Pakar)</h1>
+    <p>Atur 14 rule IF–THEN Forward Chaining untuk klasifikasi tingkat stres akademik</p>
+  </div>
+  <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Tambah Rule Baru</button>
+</div>
+
+<div class="table-wrap animate-up">
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 80px;">Rule</th>
+        <th style="width: 120px;">Tingkat</th>
+        <th style="width: 100px;">Operator</th>
+        <th>Gejala Input</th>
+        <th>Kaidah / Formula Aturan</th>
+        <th style="width: 120px;">Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rules %}
+      <tr>
+        <td><strong>{{ r.id }}</strong></td>
+        <td>
+          <span class="badge {% if r.tingkat == 'T01' %}badge-green{% elif r.tingkat == 'T03' %}badge-red{% else %}badge-yellow{% endif %}">
+            {{ r.tingkat_label }}
+          </span>
+        </td>
+        <td><span class="badge badge-gray">{{ r.operator }}</span></td>
+        <td style="font-family: monospace; font-size: 0.8rem; color: var(--brand); font-weight: 600;">{{ r.gejala }}</td>
+        <td style="font-size: 0.82rem; font-weight: 500; font-family: monospace; color: var(--ink-muted);">{{ r.kaidah }}</td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-sm" style="padding: 5px 10px;" onclick="openEditModal('{{ r.id }}', '{{ r.tingkat }}', '{{ r.operator }}', '{{ r.gejala }}')">✏️</button>
+            <form method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus Rule {{ r.id }}?')" style="display:inline;">
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="del_rule_id" value="{{ r.id }}">
+              <button type="submit" class="btn btn-danger btn-sm" style="padding: 5px 10px;">🗑</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div id="rule-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;">
+  <div class="card" style="max-width:500px;width:90%;max-height:90vh;overflow-y:auto;">
+    <div class="flex-between" style="margin-bottom:20px;">
+      <h3 class="card-title" id="modal-title">Tambah Rule Baru</h3>
+      <button onclick="document.getElementById('rule-modal').style.display='none'" style="background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+    </div>
+    <form method="POST">
+      <input type="hidden" name="action" id="form-action" value="add">
+      
+      <div class="form-group">
+        <label class="form-label">Rule ID (Kode Aturan)</label>
+        <input class="form-control" type="text" name="rule_id" id="rule-id" placeholder="R15" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Tingkat Stres Hasil (Outcome)</label>
+        <select class="form-control" name="tingkat" id="rule-tingkat" required>
+          <option value="">-- Pilih Tingkat --</option>
+          {% for code, label in tingkat_list.items() %}
+          <option value="{{ code }}">{{ label }} ({{ code }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Operator Aturan</label>
+        <select class="form-control" name="operator" id="rule-operator" required>
+          <option value="AND">AND</option>
+          <option value="OR">OR</option>
+          <option value="AND_NOT">AND_NOT (NOT untuk gejala terakhir)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Gejala Input (Pisahkan dengan koma atau spasi)</label>
+        <input class="form-control" type="text" name="gejala" id="rule-gejala" placeholder="Contoh: G01, G04, G16" required>
+        <small style="color: var(--ink-soft); font-size: 0.75rem; margin-top: 4px; display: block;">
+          * Untuk AND_NOT, gejala paling belakang akan dinegasikan (di-NOT). Contoh: "G05, G11, G06" dibaca "G05 AND G11 AND NOT G06".
+        </small>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('rule-modal').style.display='none'">Batal</button>
+        <button type="submit" class="btn btn-primary" id="submit-btn">Simpan Rule</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openAddModal() {
+  document.getElementById('modal-title').textContent = 'Tambah Aturan (Rule) Baru';
+  document.getElementById('form-action').value = 'add';
+  document.getElementById('rule-id').value = '';
+  document.getElementById('rule-id').disabled = false;
+  document.getElementById('rule-tingkat').value = '';
+  document.getElementById('rule-operator').value = 'AND';
+  document.getElementById('rule-gejala').value = '';
+  document.getElementById('submit-btn').textContent = 'Simpan Rule';
+  document.getElementById('rule-modal').style.display = 'flex';
+}
+
+function openEditModal(id, tingkat, operator, gejala) {
+  document.getElementById('modal-title').textContent = 'Edit Aturan (Rule) ' + id;
+  document.getElementById('form-action').value = 'edit';
+  document.getElementById('rule-id').value = id;
+  // We can't change the rule ID during edit, or we can use a hidden field
+  document.getElementById('rule-id').disabled = true;
+  
+  // Also create a hidden input for rule_id in case it is disabled
+  let hiddenId = document.getElementById('hidden-rule-id');
+  if (!hiddenId) {
+    hiddenId = document.createElement('input');
+    hiddenId.type = 'hidden';
+    hiddenId.name = 'rule_id';
+    hiddenId.id = 'hidden-rule-id';
+    document.getElementById('form-action').parentNode.appendChild(hiddenId);
+  }
+  hiddenId.value = id;
+
+  document.getElementById('rule-tingkat').value = tingkat;
+  document.getElementById('rule-operator').value = operator;
+  document.getElementById('rule-gejala').value = gejala;
+  document.getElementById('submit-btn').textContent = 'Simpan Perubahan';
+  document.getElementById('rule-modal').style.display = 'flex';
+}
+</script>
+{% endblock %}

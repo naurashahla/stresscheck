@@ -1,0 +1,27 @@
+{
+    "admin@kampus.ac.id": {
+        "password": "admin123",
+        "role": "admin",
+        "name": "Administrator"
+    },
+    "pakar@kampus.ac.id": {
+        "password": "pakar123",
+        "role": "pakar",
+        "name": "Dr. Pakar Psikologi"
+    },
+    "mahasiswa@kampus.ac.id": {
+        "password": "user123",
+        "role": "user",
+        "name": "Budi Santoso"
+    },
+    "testuser@kampus.ac.id": {
+        "password": "password123",
+        "role": "user",
+        "name": "Test User"
+    },
+    "ismanbaul2003@gmail.com": {
+        "password": "password",
+        "role": "user",
+        "name": "Isman Barur Muttaqin"
+    }
+}

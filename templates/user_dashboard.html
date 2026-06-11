@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — StresCheck{% endblock %}
+{% block extra_head %}
+<style>
+.user-page { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+.welcome-card {
+  background: linear-gradient(135deg, var(--ink) 0%, #2D1B69 100%);
+  border-radius: 24px;
+  padding: 36px;
+  margin-bottom: 28px;
+  position: relative; overflow: hidden;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.welcome-card::after {
+  content: '';
+  position: absolute;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,107,53,.25) 0%, transparent 70%);
+  right: -40px; bottom: -60px;
+}
+.welcome-text h2 {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.welcome-text p { color: rgba(255,255,255,.55); font-size: 0.9rem; }
+.welcome-action { position: relative; z-index: 1; white-space: nowrap; flex-shrink: 0; }
+
+/* RIWAYAT */
+.riwayat-section h2 {
+  font-family: var(--font-serif);
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+.riwayat-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 22px 24px;
+  margin-bottom: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: transform .2s, box-shadow .2s;
+}
+.riwayat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.riwayat-left { display: flex; align-items: center; gap: 16px; }
+.riwayat-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.riwayat-icon.ringan { background: #F0FDF4; }
+.riwayat-icon.sedang { background: #FFFBEB; }
+.riwayat-icon.berat  { background: #FEF2F2; }
+.riwayat-title { font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+.riwayat-date { font-size: 0.8rem; color: var(--ink-soft); }
+.riwayat-right { text-align: right; }
+.riwayat-cf { font-size: 1.4rem; font-weight: 900; color: var(--brand); }
+.riwayat-cf-label { font-size: 0.72rem; color: var(--ink-soft); font-weight: 600; }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  background: #fff;
+  border-radius: var(--r-xl);
+  border: 2px dashed var(--border);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 14px; }
+.empty-state h3 { font-family: var(--font-serif); margin-bottom: 8px; }
+.empty-state p { color: var(--ink-soft); font-size: 0.875rem; margin-bottom: 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="user-page">
+  <!-- WELCOME -->
+  <div class="welcome-card animate-up">
+    <div class="welcome-text">
+      <h2>Halo, {{ session.name }}! 👋</h2>
+      <p>Selamat datang di StresCheck. Lakukan diagnosa untuk mengetahui tingkat stres akademikmu.</p>
+    </div>
+    <a href="{{ url_for('diagnosa') }}" class="btn btn-primary welcome-action">
+      ✦ Mulai Diagnosa
+    </a>
+  </div>
+
+  <!-- RIWAYAT -->
+  <div class="riwayat-section animate-up stagger-1">
+    <div class="flex-between" style="margin-bottom:16px;">
+      <h2>Riwayat Diagnosa</h2>
+      <span class="badge badge-orange">{{ riwayat|length }} hasil</span>
+    </div>
+
+    {% if riwayat %}
+      {% for item in riwayat|reverse %}
+      {% set level_class = 'ringan' if 'Ringan' in item.hasil else ('berat' if 'Berat' in item.hasil else 'sedang') %}
+      {% set emoji = '🟢' if 'Ringan' in item.hasil else ('🔴' if 'Berat' in item.hasil else '🟡') %}
+      <div class="riwayat-card">
+        <div class="riwayat-left">
+          <div class="riwayat-icon {{ level_class }}">{{ emoji }}</div>
+          <div>
+            <div class="riwayat-title">{{ item.hasil }}</div>
+            <div class="riwayat-date">📅 {{ item.tanggal }}</div>
+            <div style="margin-top:6px;">
+              {% if item.validasi == 'Sesuai' %}
+                <span class="badge badge-green">✓ Divalidasi Pakar</span>
+              {% elif item.validasi == 'Tidak Sesuai' %}
+                <span class="badge badge-red">✗ Perlu Koreksi</span>
+              {% else %}
+                <span class="badge badge-gray">⏳ Menunggu Validasi</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="riwayat-right">
+          <div class="riwayat-cf">{{ item.cf }}%</div>
+          <div class="riwayat-cf-label">Certainty Factor</div>
+          {% if item.catatan_pakar %}
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:6px;max-width:180px;text-align:right;">
+            💬 {{ item.catatan_pakar[:40] }}{% if item.catatan_pakar|length > 40 %}...{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>Belum Ada Diagnosa</h3>
+        <p>Kamu belum pernah melakukan diagnosa. Mulai sekarang untuk mengetahui tingkat stres akademikmu.</p>
+        <a href="{{ url_for('diagnosa') }}" class="btn btn-primary">✦ Mulai Diagnosa Pertama</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

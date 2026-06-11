@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — StresCheck{% endblock %}
+{% block extra_head %}
+<style>
+.admin-section-title { font-family: var(--font-serif); font-size: 1.3rem; color: var(--ink); margin-bottom: 16px; }
+.chart-mini { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+.chart-mini-fill { height: 100%; border-radius: 99px; }
+.trend-arrow { font-size: 0.75rem; font-weight: 700; }
+.trend-up   { color: var(--danger); }
+.trend-down { color: var(--success); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard Admin</h1>
+  <p>Kelola dan monitor sistem pakar stres akademik</p>
+</div>
+
+<!-- STAT GRID -->
+<div class="stat-grid animate-up">
+  <div class="stat-card">
+    <div class="stat-label">Total User</div>
+    <div class="stat-value orange">{{ stats.total_user }}</div>
+    <div style="font-size:.78rem;color:var(--ink-soft);margin-top:4px;">Mahasiswa terdaftar</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total Diagnosa</div>
+    <div class="stat-value">{{ stats.total_diagnosa }}</div>
+    <div style="font-size:.78rem;color:var(--ink-soft);margin-top:4px;">Semua waktu</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Stres Ringan</div>
+    <div class="stat-value green">{{ stats.stres_ringan }}</div>
+    <div class="chart-mini"><div class="chart-mini-fill" style="width:{{ (stats.stres_ringan / (stats.total_diagnosa or 1) * 100)|round }}%;background:#22c55e"></div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Stres Sedang</div>
+    <div class="stat-value yellow">{{ stats.stres_sedang }}</div>
+    <div class="chart-mini"><div class="chart-mini-fill" style="width:{{ (stats.stres_sedang / (stats.total_diagnosa or 1) * 100)|round }}%;background:#f59e0b"></div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Stres Berat</div>
+    <div class="stat-value red">{{ stats.stres_berat }}</div>
+    <div class="chart-mini"><div class="chart-mini-fill" style="width:{{ (stats.stres_berat / (stats.total_diagnosa or 1) * 100)|round }}%;background:#ef4444"></div></div>
+  </div>
+</div>
+
+<!-- RECENT DIAGNOSA -->
+<div class="animate-up stagger-1">
+  <div class="flex-between" style="margin-bottom:16px;">
+    <h2 class="admin-section-title">Data Diagnosa Terbaru</h2>
+    <a href="{{ url_for('admin_diagnosa') }}" class="btn btn-ghost btn-sm">Lihat Semua →</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nama</th>
+          <th>Tanggal</th>
+          <th>Hasil</th>
+          <th>CF (%)</th>
+          <th>Validasi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in diagnosa[-5:]|reverse %}
+        <tr>
+          <td style="color:var(--ink-soft);">{{ d.id }}</td>
+          <td><strong>{{ d.nama }}</strong></td>
+          <td>{{ d.tanggal }}</td>
+          <td>
+            {% if 'Ringan' in d.hasil %}
+              <span class="badge badge-green">🟢 {{ d.hasil }}</span>
+            {% elif 'Berat' in d.hasil %}
+              <span class="badge badge-red">🔴 {{ d.hasil }}</span>
+            {% else %}
+              <span class="badge badge-yellow">🟡 {{ d.hasil }}</span>
+            {% endif %}
+          </td>
+          <td><strong>{{ d.cf }}%</strong></td>
+          <td>
+            {% if d.validasi == 'Sesuai' %}
+              <span class="badge badge-green">✓ Sesuai</span>
+            {% elif d.validasi == 'Tidak Sesuai' %}
+              <span class="badge badge-red">✗ Tidak Sesuai</span>
+            {% else %}
+              <span class="badge badge-gray">Pending</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- QUICK LINKS -->
+<div class="grid-2 animate-up stagger-2" style="margin-top:24px;">
+  <a href="{{ url_for('admin_gejala') }}" class="card card-sm" style="cursor:pointer;transition:transform .2s;text-decoration:none;">
+    <div style="font-size:2rem;margin-bottom:10px;">🧩</div>
+    <div class="card-title">Kelola Gejala</div>
+    <div class="card-subtitle">Tambah, edit, hapus data gejala G01–G35</div>
+  </a>
+  <a href="{{ url_for('admin_diagnosa') }}" class="card card-sm" style="cursor:pointer;transition:transform .2s;text-decoration:none;">
+    <div style="font-size:2rem;margin-bottom:10px;">📋</div>
+    <div class="card-title">Monitor Diagnosa</div>
+    <div class="card-subtitle">Lihat semua hasil diagnosa pengguna</div>
+  </a>
+</div>
+{% endblock %}

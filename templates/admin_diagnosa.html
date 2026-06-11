@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Data Diagnosa — StresCheck{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Data Diagnosa</h1>
+  <p>Seluruh riwayat diagnosa pengguna sistem</p>
+</div>
+
+<div class="table-wrap animate-up">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nama Pengguna</th>
+        <th>Email</th>
+        <th>Tanggal</th>
+        <th>Hasil Diagnosa</th>
+        <th>CF (%)</th>
+        <th>Gejala Aktif</th>
+        <th>Validasi Pakar</th>
+        <th>Catatan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in diagnosa %}
+      <tr>
+        <td style="color:var(--ink-soft);font-size:.82rem;">{{ d.id }}</td>
+        <td><strong>{{ d.nama }}</strong></td>
+        <td style="font-size:.82rem;color:var(--ink-soft);">{{ d.user }}</td>
+        <td style="font-size:.82rem;">{{ d.tanggal }}</td>
+        <td>
+          {% if 'Ringan' in d.hasil %}
+            <span class="badge badge-green">🟢 {{ d.hasil }}</span>
+          {% elif 'Berat' in d.hasil %}
+            <span class="badge badge-red">🔴 {{ d.hasil }}</span>
+          {% else %}
+            <span class="badge badge-yellow">🟡 {{ d.hasil }}</span>
+          {% endif %}
+        </td>
+        <td><strong style="color:var(--brand);">{{ d.cf }}%</strong></td>
+        <td><span class="badge badge-orange">{{ d.gejala_dipilih|length }} gejala</span></td>
+        <td>
+          {% if d.validasi == 'Sesuai' %}
+            <span class="badge badge-green">✓ Sesuai</span>
+          {% elif d.validasi == 'Tidak Sesuai' %}
+            <span class="badge badge-red">✗ Tidak Sesuai</span>
+          {% else %}
+            <span class="badge badge-gray">⏳ Pending</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.78rem;color:var(--ink-soft);max-width:150px;">
+          {{ d.catatan_pakar if d.catatan_pakar else '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

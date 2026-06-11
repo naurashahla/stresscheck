@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}Diagnosa Stres — StresCheck{% endblock %}
+{% block extra_head %}
+<style>
+.diagnosa-page { min-height: calc(100vh - 64px); background: var(--cream); }
+.diagnosa-top {
+  background: var(--ink);
+  padding: 32px 24px 0;
+}
+.diagnosa-top-inner { max-width: 720px; margin: 0 auto; }
+.diagnosa-top h1 {
+  font-family: var(--font-serif);
+  font-size: 1.6rem; color: #fff;
+  margin-bottom: 6px;
+}
+.diagnosa-top p { color: rgba(255,255,255,.5); font-size: 0.875rem; margin-bottom: 24px; }
+.progress-wrap { padding-bottom: 28px; }
+.progress-meta { display: flex; justify-content: space-between; color: rgba(255,255,255,.6); font-size: 0.8rem; font-weight: 600; margin-bottom: 8px; }
+.progress-meta .progress-count { color: #fff; font-weight: 800; font-size: 1rem; }
+
+.diagnosa-body { max-width: 720px; margin: 40px auto; padding: 0 24px 60px; }
+
+/* QUESTION CARD */
+.q-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  display: none;
+  animation: slideIn .35s ease;
+}
+.q-card.active { display: block; }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.q-number {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--brand-pale);
+  color: var(--brand);
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.q-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.55;
+  margin-bottom: 28px;
+}
+
+/* ANSWER OPTIONS */
+.options-grid { display: flex; flex-direction: column; gap: 10px; }
+.option-item { position: relative; }
+.option-item input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.option-label {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all .2s;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+  user-select: none;
+}
+.option-label:hover { border-color: var(--brand); background: var(--brand-pale); color: var(--brand); }
+.option-item input:checked + .option-label {
+  border-color: var(--brand);
+  background: var(--brand-pale);
+  color: var(--brand);
+  font-weight: 600;
+}
+.option-circle {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+  font-size: 0.7rem;
+}
+.option-item input:checked + .option-label .option-circle {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.option-item input:checked + .option-label .option-circle::after { content: '✓'; }
+
+/* NAV BUTTONS */
+.q-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.q-nav-right { display: flex; gap: 10px; }
+.error-msg {
+  color: var(--danger);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  background: #FEF2F2;
+  border-radius: var(--r-sm);
+  display: none;
+}
+
+/* SUBMIT BUTTON */
+.submit-wrap { text-align: center; padding-top: 20px; }
+.submit-wrap p { color: var(--ink-soft); font-size: 0.875rem; margin-bottom: 16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="diagnosa-page">
+  <div class="diagnosa-top">
+    <div class="diagnosa-top-inner">
+      <h1>Kuesioner Stres Akademik</h1>
+      <p>Jawab setiap pernyataan berikut dengan jujur sesuai kondisi yang kamu rasakan belakangan ini.</p>
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span>Pertanyaan <span class="progress-count" id="q-current">1</span> dari {{ gejala|length }}</span>
+          <span id="q-pct">0%</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill thick" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagnosa-body">
+    <form method="POST" id="diagnosa-form">
+      {% for g in gejala %}
+      <div class="q-card {% if loop.index == 1 %}active{% endif %}" id="q-card-{{ loop.index }}">
+        <div class="q-number">Pertanyaan {{ loop.index }}</div>
+        <div class="q-text">{{ g.teks }}</div>
+        <div class="options-grid">
+          {% set emoji_map = {
+            1: '😌',
+            2: '🤔',
+            3: '😐',
+            4: '😟',
+            5: '😰'
+          } %}
+          {% for val in skala_cf.keys() | sort %}
+          {% set emoji = emoji_map.get(val, '📋') %}
+          {% set label = likert_labels.get(val, 'Skala ' ~ val) %}
+          <div class="option-item">
+            <input type="radio" name="{{ g.id }}" id="{{ g.id }}_{{ val }}" value="{{ val }}">
+            <label for="{{ g.id }}_{{ val }}" class="option-label">
+              <div class="option-circle"></div>
+              <span style="font-size:1.2rem">{{ emoji }}</span>
+              <span>{{ label }}</span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="error-msg" id="err-{{ loop.index }}">⚠️ Pilih salah satu jawaban untuk melanjutkan.</div>
+        <div class="q-nav" style="margin-top:24px;">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="prev({{ loop.index }})" {% if loop.index == 1 %}style="visibility:hidden"{% endif %}>
+            ← Sebelumnya
+          </button>
+          <div class="q-nav-right">
+            {% if not loop.last %}
+            <button type="button" class="btn btn-primary" onclick="next({{ loop.index }}, '{{ g.id }}')">
+              Selanjutnya →
+            </button>
+            {% else %}
+            <button type="submit" class="btn btn-primary" onclick="return validateLast('{{ g.id }}', {{ loop.index }})">
+              ✦ Lihat Hasil
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const total = {{ gejala|length }};
+
+function showCard(n) {
+  document.querySelectorAll('.q-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById('q-card-' + n);
+  card.classList.add('active');
+  // Progress
+  document.getElementById('q-current').textContent = n;
+  const pct = Math.round(((n-1) / total) * 100);
+  document.getElementById('q-pct').textContent = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function next(idx, gejalaId) {
+  const selected = document.querySelector(`input[name="${gejalaId}"]:checked`);
+  const errEl = document.getElementById('err-' + idx);
+  if (!selected) {
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  showCard(idx + 1);
+}
+
+function prev(idx) {
+  if (idx > 1) showCard(idx - 1);
+}
+
+function validateLast(gejalaId, idx) {
+  const selected = document.querySelector(`input[name="${gejalaId}"]:checked`);
+  const errEl = document.getElementById('err-' + idx);
+  if (!selected) {
+    errEl.style.display = 'block';
+    return false;
+  }
+  // Update progress to 100%
+  document.getElementById('q-pct').textContent = '100%';
+  document.getElementById('progress-fill').style.width = '100%';
+  return true;
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  const active = document.querySelector('.q-card.active');
+  if (!active) return;
+  const idx = parseInt(active.id.replace('q-card-', ''));
+  if (e.key === 'ArrowRight' || e.key === 'Enter') {
+    const btn = active.querySelector('button[onclick^="next"]');
+    if (btn) btn.click();
+  }
+  if (e.key === 'ArrowLeft') prev(idx);
+  // Number keys 1-5 for quick select
+  if (['1','2','3','4','5'].includes(e.key)) {
+    const gId = active.querySelector('input[type=radio]').name;
+    const radio = document.getElementById(gId + '_' + e.key);
+    if (radio) radio.checked = true;
+  }
+});
+</script>
+{% endblock %}
