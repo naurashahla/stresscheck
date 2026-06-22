@@ -1,5 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Data Diagnosa — StresCheck{% endblock %}
+{% block extra_head %}
+<style>
+.catatan-col {
+  max-width: 220px;
+}
+.catatan-box {
+  max-height: 60px;
+  overflow-y: auto;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  padding-right: 6px;
+  word-break: break-word;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.catatan-box:hover {
+  color: var(--brand);
+}
+.catatan-box::-webkit-scrollbar {
+  width: 4px;
+}
+.catatan-box::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.08);
+  border-radius: 99px;
+}
+.catatan-box::-webkit-scrollbar-track {
+  background: transparent;
+}
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -18,6 +53,7 @@
         <th>Hasil Diagnosa</th>
         <th>CF (%)</th>
         <th>Gejala Aktif</th>
+        <th>Pembayaran</th>
         <th>Validasi Pakar</th>
         <th>Catatan</th>
       </tr>
@@ -41,6 +77,13 @@
         <td><strong style="color:var(--brand);">{{ d.cf }}%</strong></td>
         <td><span class="badge badge-orange">{{ d.gejala_dipilih|length }} gejala</span></td>
         <td>
+          {% if d.pembayaran == 'Sudah Dibayar' %}
+            <span class="badge badge-green">✓ Lunas</span>
+          {% else %}
+            <span class="badge badge-yellow">⏳ Pending</span>
+          {% endif %}
+        </td>
+        <td>
           {% if d.validasi == 'Sesuai' %}
             <span class="badge badge-green">✓ Sesuai</span>
           {% elif d.validasi == 'Tidak Sesuai' %}
@@ -49,12 +92,52 @@
             <span class="badge badge-gray">⏳ Pending</span>
           {% endif %}
         </td>
-        <td style="font-size:.78rem;color:var(--ink-soft);max-width:150px;">
-          {{ d.catatan_pakar if d.catatan_pakar else '—' }}
+        <td class="catatan-col">
+          {% if d.catatan_pakar %}
+            <div class="catatan-box" onclick="showCatatan(this)" data-catatan="{{ d.catatan_pakar }}" title="Klik untuk lihat detail lengkap">
+              {{ d.catatan_pakar }}
+            </div>
+          {% else %}
+            <span style="color:var(--ink-soft); font-size:0.78rem;">—</span>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+
+<!-- Modal Detail Catatan -->
+<div id="catatan-modal" style="display: none; position: fixed; inset: 0; background: rgba(26,26,46,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+  <div style="background: #fff; border-radius: var(--r-xl); max-width: 500px; width: 90%; padding: 28px; box-shadow: var(--shadow-lg); border: 1px solid var(--border); animation: zoomIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);">
+    <h3 style="font-family: var(--font-serif); margin-bottom: 12px; color: var(--ink);">Detail Catatan Pakar</h3>
+    <div id="modal-content" style="font-size: 0.9rem; color: var(--ink-soft); line-height: 1.6; max-height: 250px; overflow-y: auto; margin-bottom: 20px; white-space: pre-wrap; word-break: break-word;"></div>
+    <div style="text-align: right;">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showCatatan(element) {
+  const catatan = element.getAttribute('data-catatan');
+  document.getElementById('modal-content').textContent = catatan;
+  const modal = document.getElementById('catatan-modal');
+  modal.style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('catatan-modal').style.display = 'none';
+}
+
+window.onclick = function(event) {
+  const modal = document.getElementById('catatan-modal');
+  if (event.target === modal) {
+    modal.style.display = 'none';
+  }
+}
+</script>
 {% endblock %}

@@ -96,6 +96,43 @@
 {% set emoji = '🟢' if 'Ringan' in hasil.tingkat else ('🔴' if 'Berat' in hasil.tingkat else '🟡') %}
 
 <div class="hasil-page">
+  <!-- PAYMENT/VALIDATION STATUS BANNER -->
+  {% if hasil.pembayaran != 'Sudah Dibayar' %}
+  <div class="card animate-up" style="background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 1.5px solid #FCD34D; margin-bottom: 28px; padding: 24px; text-align: center; border-radius: var(--r-xl);">
+    <span style="font-size: 2.5rem; display: block; margin-bottom: 12px;">💳</span>
+    <h3 style="font-family: var(--font-serif); color: #B45309; margin-bottom: 8px; font-size: 1.25rem;">Validasi Pakar Diperlukan</h3>
+    <p style="color: #78350F; font-size: 0.875rem; line-height: 1.6; max-width: 560px; margin: 0 auto 18px;">
+      Hasil di bawah ini masih berupa diagnosa sistem otomatis. Lakukan pembayaran sebesar <strong>Rp 15.000</strong> agar kondisi Anda divalidasi langsung oleh Pakar Psikologi kami.
+    </p>
+    {% if hasil.diagnosa_id %}
+    <a href="{{ url_for('pembayaran', diagnosa_id=hasil.diagnosa_id) }}" class="btn btn-primary" style="background: var(--brand); padding: 10px 24px; font-size: 0.875rem;">
+      Bayar Validasi Rp15.000 Sekarang →
+    </a>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="card animate-up" style="background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border: 1.5px solid #86EFAC; margin-bottom: 28px; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-radius: var(--r-lg);">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <span style="font-size: 1.6rem;">🔒</span>
+      <div>
+        <h4 style="font-family: var(--font-serif); color: #166534; margin-bottom: 4px; font-size: 1rem;">Layanan Validasi Pakar Aktif</h4>
+        <p style="color: #15803D; font-size: 0.82rem; margin-bottom: 0;">
+          {% if hasil.validasi %}
+            Status: Divalidasi oleh Pakar (Keputusan: {{ hasil.validasi }})
+          {% else %}
+            Status: Menunggu Tinjauan Pakar Psikologi
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    {% if hasil.validasi %}
+      <span class="badge badge-green">Divalidasi</span>
+    {% else %}
+      <span class="badge badge-yellow">Menunggu</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- RESULT HERO -->
   <div class="result-hero {{ level_class }} animate-up">
     <span class="result-emoji">{{ emoji }}</span>
@@ -161,10 +198,37 @@
     <p>{{ hasil.saran }}</p>
   </div>
 
+  <!-- PAKAR VALIDATION CARD -->
+  {% if hasil.validasi %}
+  <div class="card animate-up stagger-2" style="margin-bottom: 24px; border: 1.5px solid var(--brand); background: var(--cream); border-radius: var(--r-xl); padding: 24px;">
+    <h3 style="color: var(--brand-dark); font-family: var(--font-serif); font-size: 1.15rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+      <span>🔬</span> Hasil Validasi Pakar Psikologi
+    </h3>
+    <div style="font-size: 0.9rem; line-height: 1.65; color: var(--ink);">
+      <p style="margin-bottom: 10px;">
+        Keputusan Validasi: <strong>{% if hasil.validasi == 'Sesuai' %}Hasil Sesuai dengan Kondisi Nyata{% else %}Hasil Tidak Sesuai / Perlu Penyesuaian{% endif %}</strong>
+      </p>
+      {% if hasil.catatan_pakar %}
+        <div style="margin-top: 12px;">
+          <strong style="display: block; font-size: 0.82rem; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 4px;">Catatan Koreksi Pakar:</strong>
+          <blockquote style="border-left: 3px solid var(--brand); padding: 4px 0 4px 14px; color: var(--ink-muted); font-style: italic; margin: 0;">
+            "{{ hasil.catatan_pakar }}"
+          </blockquote>
+        </div>
+      {% else %}
+        <p style="color: var(--ink-soft); font-style: italic; margin-top: 8px;">Tidak ada catatan tambahan dari pakar.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ACTIONS -->
   <div class="result-actions animate-up stagger-3">
     <a href="{{ url_for('diagnosa') }}" class="btn btn-primary">🔄 Ulangi Diagnosa</a>
     <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline">📋 Lihat Riwayat</a>
+    {% if hasil.pembayaran != 'Sudah Dibayar' and hasil.diagnosa_id %}
+    <a href="{{ url_for('pembayaran', diagnosa_id=hasil.diagnosa_id) }}" class="btn btn-primary" style="background: var(--brand);">💳 Bayar Validasi</a>
+    {% endif %}
     <a href="{{ url_for('index') }}" class="btn btn-ghost">🏠 Beranda</a>
   </div>
 </div>

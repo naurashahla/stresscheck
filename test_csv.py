@@ -1,4 +1,3 @@
-# test_csv.py
 import csv
 import os
 from model import diagnosa_stres
@@ -20,7 +19,7 @@ def map_likert_text_to_val(text):
         return 3
 
 def process_csv():
-    csv_filename = "Kuesioner Tingkat Stres Akademik Mahasiswa (Jawaban) - Form Responses 1 (1).csv"
+    csv_filename = "Kuesioner Tingkat Stres Akademik Mahasiswa (Jawaban).csv"
     csv_path = os.path.join(os.path.dirname(__file__), csv_filename)
     
     if not os.path.exists(csv_path):
@@ -110,6 +109,62 @@ def process_csv():
             writer.writerow([r['no'], r['nama'], r['fakultas'], r['semester'], r['hasil'], f"{r['cf']:.2f}%"])
             
     print(f"Hasil lengkap masing-masing responden telah disimpan ke file:\n  {output_path}\n")
+
+    # Generate Diagram Distribusi
+    try:
+        import matplotlib.pyplot as plt
+        
+        categories = ['Stres Ringan', 'Stres Sedang', 'Stres Berat']
+        counts = [stats[cat] for cat in categories]
+        percentages = [(count / total_responden * 100) if total_responden > 0 else 0 for count in counts]
+        
+        # Color palette for research presentation
+        colors = ['#2ec4b6', '#ffb703', '#e63946'] # Teal, Warm Yellow, Crimson
+        
+        # Create a figure with 2 subplots (1 row, 2 columns)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        fig.suptitle(f'Distribusi Hasil Diagnosa Stres Akademik\n(Total Responden Terproses: {total_responden})', 
+                     fontsize=16, fontweight='bold', y=0.98)
+        
+        # 1. Bar Chart
+        bars = ax1.bar(categories, counts, color=colors, edgecolor='black', alpha=0.85, width=0.6)
+        ax1.set_title('Jumlah Responden per Tingkat Stres', fontsize=12, pad=10)
+        ax1.set_ylabel('Jumlah Responden', fontsize=11)
+        ax1.set_ylim(0, max(counts) + 10)
+        ax1.grid(axis='y', linestyle='--', alpha=0.5)
+        
+        # Add values on top of the bars
+        for bar, count, pct in zip(bars, counts, percentages):
+            height = bar.get_height()
+            ax1.annotate(f'{count}\n({pct:.2f}%)',
+                        xy=(bar.get_x() + bar.get_width() / 2, height),
+                        xytext=(0, 3),  # 3 points vertical offset
+                        textcoords="offset points",
+                        ha='center', va='bottom', fontsize=10, fontweight='bold')
+            
+        # 2. Pie Chart (Donut style)
+        pie_labels = [f'{cat}\n({pct:.2f}%)' for cat, pct in zip(categories, percentages)]
+        wedges, texts, autotexts = ax2.pie(counts, labels=pie_labels, colors=colors, 
+                                          autopct='%1.1f%%', startangle=140, 
+                                          wedgeprops=dict(width=0.4, edgecolor='black', alpha=0.85))
+        
+        # Hide the default percentage labels since we custom-formatted labels
+        for autotext in autotexts:
+            autotext.set_visible(False)
+            
+        ax2.set_title('Persentase Distribusi Tingkat Stres', fontsize=12, pad=10)
+        
+        plt.tight_layout()
+        
+        chart_filename = "diagram_distribusi_stres.png"
+        chart_path = os.path.join(os.path.dirname(__file__), chart_filename)
+        plt.savefig(chart_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f"Diagram distribusi telah disimpan ke file:\n  {chart_path}\n")
+    except Exception as e:
+        print(f"Gagal membuat diagram: {e}")
+
 
 if __name__ == '__main__':
     process_csv()

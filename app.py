@@ -91,7 +91,8 @@ DEFAULT_DIAGNOSA_HISTORY = [
             'G11': 2, 'G12': 1, 'G13': 2, 'G14': 4, 'G15': 5, 'G16': 3, 'G17': 1, 'G18': 2, 'G19': 3, 'G20': 3,
             'G21': 2, 'G22': 4, 'G23': 5, 'G24': 2, 'G25': 4, 'G26': 5, 'G27': 2, 'G28': 2, 'G29': 2, 'G30': 2,
             'G31': 2, 'G32': 1, 'G33': 1, 'G34': 1, 'G35': 2
-        }
+        },
+        'pembayaran': 'Sudah Dibayar'
     },
     {
         'id': 2, 'user': 'mahasiswa@kampus.ac.id', 'nama': 'Budi Santoso',
@@ -103,7 +104,8 @@ DEFAULT_DIAGNOSA_HISTORY = [
             'G11': 4, 'G12': 1, 'G13': 2, 'G14': 3, 'G15': 1, 'G16': 4, 'G17': 1, 'G18': 3, 'G19': 4, 'G20': 1,
             'G21': 2, 'G22': 3, 'G23': 3, 'G24': 4, 'G25': 3, 'G26': 2, 'G27': 3, 'G28': 1, 'G29': 1, 'G30': 3,
             'G31': 1, 'G32': 1, 'G33': 1, 'G34': 2, 'G35': 2
-        }
+        },
+        'pembayaran': 'Belum Dibayar'
     },
 ]
 
@@ -116,6 +118,17 @@ def load_diagnosa_history():
         try:
             with open(history_path, 'r', encoding='utf-8') as f:
                 DIAGNOSA_HISTORY = json.load(f)
+            # Pastikan semua item riwayat memiliki field 'pembayaran'
+            updated = False
+            for d in DIAGNOSA_HISTORY:
+                if 'pembayaran' not in d:
+                    if d.get('validasi') is not None:
+                        d['pembayaran'] = 'Sudah Dibayar'
+                    else:
+                        d['pembayaran'] = 'Belum Dibayar'
+                    updated = True
+            if updated:
+                save_diagnosa_history()
         except Exception as e:
             print("Error loading diagnosa_history.json:", e)
             DIAGNOSA_HISTORY = DEFAULT_DIAGNOSA_HISTORY.copy()
@@ -246,8 +259,6 @@ def diagnosa():
                 'saran': 'Pertimbangkan untuk berbicara dengan konselor akademik.'
             }
         
-        session['hasil_diagnosa'] = hasil
-        
         # Simpan ke history (mock)
         new_entry = {
             'id': len(DIAGNOSA_HISTORY) + 1,
@@ -259,22 +270,94 @@ def diagnosa():
             'validasi': None,
             'catatan_pakar': '',
             'gejala_dipilih': [g['id'] for g in GEJALA if jawaban.get(g['id'], 0) >= 4],
-            'jawaban_gejala': jawaban
+            'jawaban_gejala': jawaban,
+            'pembayaran': 'Belum Dibayar'
         }
         DIAGNOSA_HISTORY.append(new_entry)
         save_diagnosa_history()
         
-        return redirect(url_for('hasil'))
+        session['hasil_diagnosa'] = hasil
+        session['last_diagnosa_id'] = new_entry['id']
+        
+        return redirect(url_for('pembayaran', diagnosa_id=new_entry['id']))
     
     import model
     return render_template('diagnosa.html', gejala=GEJALA, likert_labels=model.LIKERT_LABELS, skala_cf=model.SKALA_CF)
 
+@app.route('/pembayaran/<int:diagnosa_id>', methods=['GET', 'POST'])
+@role_required('user')
+def pembayaran(diagnosa_id):
+    entry = next((d for d in DIAGNOSA_HISTORY if d['id'] == diagnosa_id), None)
+    if not entry:
+        flash('Data diagnosa tidak ditemukan.', 'error')
+        return redirect(url_for('user_dashboard'))
+    
+    if entry['user'] != session['user']:
+        flash('Akses ditolak.', 'error')
+        return redirect(url_for('user_dashboard'))
+        
+    if entry.get('pembayaran') == 'Sudah Dibayar':
+        flash('Diagnosa ini sudah dibayar.', 'success')
+        return redirect(url_for('hasil', id=diagnosa_id))
+        
+    if request.method == 'POST':
+        method = request.form.get('payment_method', 'QRIS')
+        entry['pembayaran'] = 'Sudah Dibayar'
+        save_diagnosa_history()
+        
+        # Set ke session agar halaman hasil ter-update jika di-refresh langsung
+        from model import diagnosa_stres
+        hasil = diagnosa_stres(entry['jawaban_gejala'])
+        session['hasil_diagnosa'] = hasil
+        session['last_diagnosa_id'] = entry['id']
+        
+        flash(f'Pembayaran sebesar Rp 15.000 via {method} berhasil dilakukan! Silakan tunggu hasil validasi pakar.', 'success')
+        return redirect(url_for('hasil', id=diagnosa_id))
+        
+    return render_template('pembayaran.html', entry=entry)
+
 @app.route('/hasil')
 @role_required('user')
 def hasil():
+    diagnosa_id = request.args.get('id')
+    if diagnosa_id:
+        try:
+            d_id = int(diagnosa_id)
+            entry = next((x for x in DIAGNOSA_HISTORY if x['id'] == d_id and x['user'] == session['user']), None)
+            if entry:
+                # Keamanan: Jika belum dibayar, paksa ke halaman pembayaran
+                if entry.get('pembayaran') != 'Sudah Dibayar':
+                    flash('Silakan selesaikan pembayaran terlebih dahulu untuk melihat hasil diagnosa.', 'warning')
+                    return redirect(url_for('pembayaran', diagnosa_id=entry['id']))
+                
+                from model import diagnosa_stres
+                hasil = diagnosa_stres(entry['jawaban_gejala'])
+                hasil['validasi'] = entry.get('validasi')
+                hasil['catatan_pakar'] = entry.get('catatan_pakar')
+                hasil['pembayaran'] = entry.get('pembayaran', 'Belum Dibayar')
+                hasil['diagnosa_id'] = entry['id']
+                return render_template('hasil.html', hasil=hasil)
+        except Exception as e:
+            pass
+            
     hasil = session.get('hasil_diagnosa')
     if not hasil:
         return redirect(url_for('diagnosa'))
+        
+    if 'last_diagnosa_id' in session:
+        last_id = session['last_diagnosa_id']
+        hasil['diagnosa_id'] = last_id
+        entry = next((x for x in DIAGNOSA_HISTORY if x['id'] == last_id), None)
+        if entry:
+            # Keamanan: Jika belum dibayar, paksa ke halaman pembayaran
+            if entry.get('pembayaran') != 'Sudah Dibayar':
+                flash('Silakan selesaikan pembayaran terlebih dahulu untuk melihat hasil diagnosa.', 'warning')
+                return redirect(url_for('pembayaran', diagnosa_id=entry['id']))
+                
+            hasil['pembayaran'] = entry.get('pembayaran', 'Belum Dibayar')
+            hasil['validasi'] = entry.get('validasi')
+            hasil['catatan_pakar'] = entry.get('catatan_pakar')
+            
     return render_template('hasil.html', hasil=hasil)
 
 # ─── ADMIN ROUTES ────────────────────────────────────────────────────────────
@@ -458,7 +541,9 @@ def admin_rules():
 @role_required('pakar')
 def pakar_dashboard():
     import model
-    return render_template('pakar_dashboard.html', diagnosa=DIAGNOSA_HISTORY, gejala=GEJALA, likert_labels=model.LIKERT_LABELS)
+    # Hanya tampilkan yang sudah dibayar dan belum divalidasi pakar
+    pending_validasi = [d for d in DIAGNOSA_HISTORY if d.get('pembayaran') == 'Sudah Dibayar' and d.get('validasi') is None]
+    return render_template('pakar_dashboard.html', diagnosa=pending_validasi, gejala=GEJALA, likert_labels=model.LIKERT_LABELS)
 
 @app.route('/pakar/validasi/<int:diagnosa_id>', methods=['POST'])
 @role_required('pakar')
@@ -467,6 +552,10 @@ def pakar_validasi(diagnosa_id):
     catatan = request.form.get('catatan', '')
     for d in DIAGNOSA_HISTORY:
         if d['id'] == diagnosa_id:
+            # Pastikan sudah dibayar
+            if d.get('pembayaran') != 'Sudah Dibayar':
+                flash('Gagal validasi: Diagnosa belum dibayar.', 'error')
+                return redirect(url_for('pakar_dashboard'))
             d['validasi'] = status
             d['catatan_pakar'] = catatan
             break
@@ -479,7 +568,9 @@ def pakar_validasi(diagnosa_id):
 @role_required('pakar')
 def pakar_history():
     import model
-    return render_template('pakar_history.html', diagnosa=DIAGNOSA_HISTORY, gejala=GEJALA, likert_labels=model.LIKERT_LABELS)
+    # Hanya tampilkan riwayat yang sudah dibayar
+    paid_history = [d for d in DIAGNOSA_HISTORY if d.get('pembayaran') == 'Sudah Dibayar']
+    return render_template('pakar_history.html', diagnosa=paid_history, gejala=GEJALA, likert_labels=model.LIKERT_LABELS)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

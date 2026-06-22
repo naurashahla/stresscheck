@@ -398,8 +398,7 @@ tbody tr:hover { background: #FAFAF8; }
   </a>
   <div class="navbar-nav">
     {% if session.get('user') %}
-      <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
-      <a href="{{ url_for('diagnosa') }}" class="nav-link">Diagnosa</a>
+      <a href="{{ url_for('user_dashboard') }}" class="nav-link {% if request.endpoint == 'user_dashboard' %}active{% endif %}">Diagnosa</a>
       <span style="font-size:.85rem;color:var(--ink-soft);padding:0 8px;">{{ session.get('name') }}</span>
       <a href="{{ url_for('logout') }}" class="btn-nav" style="background:var(--ink)">⏏ Keluar</a>
     {% else %}
